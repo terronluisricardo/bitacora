@@ -1,0 +1,433 @@
+<title>Bitácora de entrenamiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: una columna estrecha tipo libreta de gimnasio; pestañas fijas arriba, una tarjeta por ejercicio. */
+:root {
+  --bg: #eef0f2;
+  --surface: #ffffff;
+  --surface-2: #e4e8eb;
+  --ink: #1b2328;
+  --ink-soft: #5a6770;
+  --line: #cdd4d9;
+  --accent: #0b6f6a;
+  --accent-ink: #ffffff;
+  --run: #b4410f;
+  --run-soft: #f6e3d9;
+  --accent-soft: #d6ece9;
+  --font-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171a; --surface: #1b2227; --surface-2: #263037; --ink: #e7ecef; --ink-soft: #9aa8b1;
+    --line: #34414a; --accent: #4cc9bd; --accent-ink: #08201e; --run: #f08a52; --run-soft: #3a2a20; --accent-soft: #1d3a38;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171a; --surface: #1b2227; --surface-2: #263037; --ink: #e7ecef; --ink-soft: #9aa8b1;
+  --line: #34414a; --accent: #4cc9bd; --accent-ink: #08201e; --run: #f08a52; --run-soft: #3a2a20; --accent-soft: #1d3a38;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.4; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.wrap { max-width: 640px; margin: 0 auto; padding-inline: 16px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 12px 6px; }
+.brand h1 { font-family: var(--font-display); font-size: 1.55rem; letter-spacing: .02em; text-transform: uppercase; margin: 0; line-height: 1; }
+.status { font-size: .78rem; color: var(--ink-soft); white-space: nowrap; }
+.tabs { display: flex; gap: 4px; padding-bottom: 10px; overflow-x: auto; }
+.tab { flex: 1 1 0; min-width: 54px; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 4px 7px; text-align: center; cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; letter-spacing: .04em; text-transform: uppercase; line-height: 1.05; }
+.tab small { display: block; font-family: var(--font-body); font-weight: 500; font-size: .66rem; letter-spacing: 0; text-transform: none; color: var(--ink-soft); }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tab[aria-selected="true"] small { color: var(--bg); opacity: .75; }
+.tab.run[aria-selected="true"] { background: var(--run); border-color: var(--run); color: #fff; }
+.tab.run[aria-selected="true"] small { color: #fff; }
+
+main { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+.head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px; }
+.head h2 { font-family: var(--font-display); font-size: 1.9rem; line-height: 1; margin: 0; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.head p { margin: 4px 0 0; color: var(--ink-soft); font-size: .92rem; }
+.datebox { display: flex; flex-direction: column; gap: 2px; font-size: .72rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; }
+.datebox input { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: .9rem; color: var(--ink); }
+.prog { display: flex; align-items: center; gap: 10px; font-size: .86rem; color: var(--ink-soft); }
+.bar { flex: 1; height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+.tip { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: .88rem; color: var(--ink-soft); }
+
+.ex { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ex.done { border-color: var(--accent); background: linear-gradient(0deg, var(--accent-soft), var(--accent-soft)) , var(--surface); }
+.ex-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.ex-name { font-weight: 600; font-size: 1.04rem; min-width: 0; }
+.ex-meta { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-soft); white-space: nowrap; text-align: right; }
+.pips { display: flex; gap: 8px; flex-wrap: wrap; }
+.pip { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); background: var(--bg); cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: var(--ink-soft); }
+.pip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pip.wide { width: auto; padding-inline: 16px; border-radius: 22px; font-family: var(--font-body); font-size: .95rem; font-weight: 600; }
+.loadrow { display: flex; gap: 8px; align-items: center; }
+.load { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: .95rem; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.prior { font-size: .8rem; color: var(--ink-soft); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.prior b { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
+.link { background: none; border: 0; padding: 4px 0; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; font-size: .8rem; }
+
+.runcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.runcard.sel { border: 2px solid var(--run); background: var(--run-soft); }
+.runcard h3 { margin: 0; font-family: var(--font-display); font-size: 1.35rem; text-transform: uppercase; letter-spacing: .02em; display: flex; justify-content: space-between; gap: 8px; }
+.runcard h3 span { font-family: var(--font-mono); font-size: .8rem; color: var(--ink-soft); text-transform: none; letter-spacing: 0; font-weight: 400; align-self: center; }
+.runcard p { margin: 0; font-size: .92rem; }
+.pick { align-self: flex-start; margin-top: 4px; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: .85rem; font-weight: 600; }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
+.field input, .field textarea { font-family: var(--font-mono); font-size: .95rem; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; width: 100%; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.rules { margin: 0; padding-left: 18px; font-size: .9rem; display: flex; flex-direction: column; gap: 4px; }
+
+.tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th { text-align: left; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .05em; font-size: .95rem; padding: 8px 10px; background: var(--surface-2); }
+td { padding: 8px 10px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-soft); font-size: .84rem; }
+.empty { text-align: center; padding: 20px 8px; color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1>Bitácora</h1><span class="status" id="status" aria-live="polite"></span></div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Días de entrenamiento"></nav>
+  </div>
+</header>
+<main id="view"></main>
+
+<script>
+(function () {
+  "use strict";
+
+  var DAYS = [
+    { k: "lun", label: "Lun", sub: "Pierna", title: "Pierna pesada + espalda", note: "El día de más daño excéntrico. Llega 48 h después del fondo del sábado.",
+      ex: [
+        { id: "l-prensa", n: "Prensa 45°", s: 3, r: "8-12", d: "2-3 min" },
+        { id: "l-rdl", n: "Peso muerto rumano con mancuernas", s: 3, r: "8-10", d: "2-3 min" },
+        { id: "l-bulgaro", n: "Split squat búlgaro", s: 2, r: "8-10", d: "2 min" },
+        { id: "l-soleo", n: "Sóleo sentado", s: 3, r: "10-15", d: "1-2 min" },
+        { id: "l-jalon", n: "Jalón al pecho", s: 3, r: "8-12", d: "2 min" },
+        { id: "l-remo", n: "Remo con pecho apoyado", s: 2, r: "8-12", d: "2 min" },
+        { id: "l-curl", n: "Curl bíceps inclinado", s: 2, r: "10-12", d: "1-2 min" },
+        { id: "l-inc", n: "Caminata inclinada (suave)", cardio: 15 }
+      ] },
+    { k: "mar", label: "Mar", sub: "Torso", title: "Torso pesado", note: "Aquí subes más peso en empuje. Si pasa de 65 min, haz superserie de elevaciones laterales con tríceps o curl.",
+      ex: [
+        { id: "m-pinc", n: "Press inclinado", s: 3, r: "6-10", d: "2-3 min" },
+        { id: "m-phombro", n: "Press de hombro (máquina o mancuernas con respaldo)", s: 3, r: "6-10", d: "2-3 min" },
+        { id: "m-remo", n: "Remo en máquina", s: 3, r: "8-10", d: "2 min" },
+        { id: "m-elev", n: "Elevaciones laterales en polea", s: 3, r: "10-15", d: "1-2 min" },
+        { id: "m-tri-s", n: "Extensión de tríceps sobre la cabeza", s: 3, r: "10-12", d: "1-2 min" },
+        { id: "m-tri-p", n: "Tríceps en polea", s: 2, r: "10-12", d: "1-2 min" },
+        { id: "m-pred", n: "Curl predicador", s: 3, r: "10-12", d: "1-2 min" },
+        { id: "m-inc", n: "Caminata inclinada", cardio: 20 }
+      ] },
+    { k: "jue", label: "Jue", sub: "Pierna", title: "Pierna en máquinas + pecho + core", note: "Pierna de bajo daño excéntrico, a 48 h del fondo del sábado.",
+      ex: [
+        { id: "j-hip", n: "Hip thrust en máquina", s: 3, r: "8-12", d: "2-3 min" },
+        { id: "j-femoral", n: "Curl femoral sentado", s: 3, r: "10-12", d: "1-2 min" },
+        { id: "j-cuad", n: "Extensión de cuádriceps", s: 3, r: "10-15", d: "1-2 min" },
+        { id: "j-soleo", n: "Sóleo sentado", s: 3, r: "10-15", d: "1-2 min" },
+        { id: "j-pecho", n: "Press de pecho plano", s: 3, r: "8-12", d: "2-3 min" },
+        { id: "j-elev", n: "Elevaciones laterales", s: 3, r: "12-20", d: "1-2 min" },
+        { id: "j-core", n: "Rueda abdominal o crunch en polea", s: 2, r: "10-15", d: "1 min" },
+        { id: "j-inc", n: "Caminata inclinada (suave)", cardio: 15 }
+      ] },
+    { k: "vie", label: "Vie", sub: "Torso", title: "Torso volumen, sin pierna", note: "Cero pierna y cero carga axial para llegar fresco al fondo. Cargas moderadas.",
+      ex: [
+        { id: "v-jalon", n: "Jalón neutro", s: 2, r: "10-12", d: "2 min" },
+        { id: "v-remo", n: "Remo con pecho apoyado", s: 2, r: "10-12", d: "2 min" },
+        { id: "v-pinc", n: "Press inclinado con mancuernas", s: 2, r: "8-12", d: "2 min" },
+        { id: "v-cruces", n: "Cruces en polea", s: 2, r: "12-15", d: "1-2 min" },
+        { id: "v-elev", n: "Elevaciones laterales", s: 3, r: "12-20", d: "1-2 min" },
+        { id: "v-tri-s", n: "Extensión de tríceps sobre la cabeza", s: 3, r: "10-12", d: "1-2 min" },
+        { id: "v-tri-p", n: "Tríceps en polea", s: 2, r: "12-15", d: "1-2 min" },
+        { id: "v-mart", n: "Curl martillo", s: 2, r: "10-12", d: "1-2 min" },
+        { id: "v-pallof", n: "Pallof press (por lado)", s: 2, r: "10-12", d: "1 min" },
+        { id: "v-inc", n: "Caminata inclinada", cardio: 20 }
+      ] }
+  ];
+
+  var RUNS = [
+    { n: 1, t: "Fondo con final a ritmo", dur: "~1:50", d: "14-15 km en Z2 (7:30-8:00 /km, FC < 163) y los últimos 3 km a 6:30 /km." },
+    { n: 2, t: "Umbral", dur: "~1:10", d: "15 min de calentamiento + 2 × 15 min a 6:15 /km (2 min de trote entre bloques) + 10 min de enfriamiento." },
+    { n: 3, t: "Fondo largo", dur: "~2:05", d: "16 km en Z2 (7:30-8:00 /km, FC < 163)." },
+    { n: 4, t: "VO₂máx", dur: "~1:00", d: "15 min de calentamiento + 5 × 3 min a 5:45-5:50 /km (2 min de trote entre) + 10 min de enfriamiento." }
+  ];
+
+  var SERIES = [
+    ["Pecho", 10, "3", "Mar, jue, vie"], ["Espalda", 12, "3", "Lun, mar, vie"], ["Deltoide medio", "9 + press", "3", "Mar, jue, vie"],
+    ["Tríceps", 10, "2", "Mar, vie"], ["Bíceps", 7, "3", "Lun, mar, vie"], ["Cuádriceps", 8, "2", "Lun, jue"],
+    ["Isquios", 6, "2", "Lun, jue"], ["Glúteo", 8, "2", "Lun, jue"], ["Sóleo", 6, "2", "Lun, jue"], ["Core", 4, "2", "Jue, vie"]
+  ];
+
+  var LS_KEY = "bitacora-entrenamiento-v1";
+  var S = { log: {}, tab: "lun", date: todayStr(), uid: null, db: null, ready: false, dirty: false, saving: false, dbOk: false };
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function fmtDate(s) {
+    var p = s.split("-"); var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return d.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+  }
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "text") e.textContent = attrs[k];
+      else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (c) { if (c) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+
+  /* ---------- almacenamiento ---------- */
+  function lsRead() { try { var r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+  function lsWrite() { try { localStorage.setItem(LS_KEY, JSON.stringify(S.log)); } catch (e) {} }
+  function setStatus(t) { document.getElementById("status").textContent = t; }
+  function statusIdle() { setStatus(S.dbOk ? "Guardado en tu cuenta" : "Guardado solo en este navegador"); }
+
+  function mergeLogs(base, over) {
+    var out = JSON.parse(JSON.stringify(base || {}));
+    Object.keys(over || {}).forEach(function (date) {
+      var o = over[date], b = out[date] = out[date] || {};
+      if (o.ex) { b.ex = b.ex || {}; Object.keys(o.ex).forEach(function (id) { b.ex[id] = o.ex[id]; }); }
+      if (o.run) b.run = o.run;
+    });
+    return out;
+  }
+
+  function queueSave() {
+    lsWrite();
+    S.dirty = true;
+    if (!S.db || !S.ready) { statusIdle(); return; }
+    setStatus("Guardando…");
+    flush();
+  }
+  function flush() {
+    if (S.saving || !S.dirty) return;
+    S.saving = true; S.dirty = false;
+    var ref = S.db.doc("data/users/" + S.uid + "/log");
+    ref.set({ v: 1, log: JSON.parse(JSON.stringify(S.log)) }).then(function () {
+      S.saving = false;
+      if (S.dirty) flush(); else statusIdle();
+    }, function () {
+      S.saving = false; S.dbOk = false; setStatus("No se pudo guardar en la cuenta; queda en este navegador");
+    });
+  }
+
+  var saveTimer = null;
+  function touch() { clearTimeout(saveTimer); saveTimer = setTimeout(queueSave, 500); }
+
+  function entry(date) { return S.log[date] = S.log[date] || {}; }
+  function exEntry(date, id, s) {
+    var e = entry(date); e.ex = e.ex || {};
+    var x = e.ex[id] = e.ex[id] || { sets: [], load: "" };
+    while (x.sets.length < s) x.sets.push(false);
+    return x;
+  }
+  function prior(id, date) {
+    var dates = Object.keys(S.log).filter(function (d) { return d < date; }).sort().reverse();
+    for (var i = 0; i < dates.length; i++) {
+      var x = S.log[dates[i]].ex && S.log[dates[i]].ex[id];
+      if (x && x.load && x.load.trim()) return { date: dates[i], load: x.load };
+    }
+    return null;
+  }
+
+  /* ---------- vistas ---------- */
+  var viewEl = document.getElementById("view");
+  var tabsEl = document.getElementById("tabs");
+
+  function renderTabs() {
+    tabsEl.textContent = "";
+    DAYS.forEach(function (d) { tabsEl.appendChild(tabBtn(d.k, d.label, d.sub, false)); });
+    tabsEl.appendChild(tabBtn("sab", "Sáb", "Correr", true));
+    tabsEl.appendChild(tabBtn("ser", "Series", "Semana", false));
+  }
+  function tabBtn(k, label, sub, run) {
+    var b = el("button", { class: "tab" + (run ? " run" : ""), type: "button", role: "tab", "aria-selected": String(S.tab === k), onclick: function () { S.tab = k; render(); window.scrollTo(0, 0); } },
+      [label, el("small", { text: sub })]);
+    return b;
+  }
+
+  function render() {
+    renderTabs();
+    viewEl.textContent = "";
+    if (S.tab === "sab") renderRun();
+    else if (S.tab === "ser") renderSeries();
+    else renderDay(DAYS.filter(function (d) { return d.k === S.tab; })[0]);
+  }
+
+  function dateField() {
+    var inp = el("input", { type: "date", id: "fecha", value: S.date, onchange: function () { if (this.value) { S.date = this.value; render(); } } });
+    return el("label", { class: "datebox", for: "fecha" }, ["Fecha de la sesión", inp]);
+  }
+
+  function renderDay(day) {
+    viewEl.appendChild(el("div", { class: "head" }, [
+      el("div", null, [el("h2", { text: day.title }), el("p", { text: day.note })]),
+      dateField()
+    ]));
+    var prog = el("div", { class: "prog" }, [el("span", { id: "progtxt" }), el("div", { class: "bar" }, [el("i", { id: "progbar" })])]);
+    viewEl.appendChild(prog);
+    day.ex.forEach(function (ex) { viewEl.appendChild(exCard(ex)); });
+    viewEl.appendChild(el("div", { class: "tip", text: "RIR 2 en compuestos y RIR 1-2 en aislamientos. Sube el peso cuando completes el tope de repeticiones en todas las series." }));
+    updateProgress(day);
+  }
+
+  function isDone(ex) {
+    var x = exEntry(S.date, ex.id, ex.cardio ? 1 : ex.s);
+    return x.sets.slice(0, ex.cardio ? 1 : ex.s).every(Boolean);
+  }
+  function updateProgress(day) {
+    var done = day.ex.filter(isDone).length;
+    var t = document.getElementById("progtxt"), b = document.getElementById("progbar");
+    if (t) t.textContent = done + " de " + day.ex.length + " hechos";
+    if (b) b.style.width = Math.round(done / day.ex.length * 100) + "%";
+  }
+
+  function exCard(ex) {
+    var n = ex.cardio ? 1 : ex.s;
+    var x = exEntry(S.date, ex.id, n);
+    var card = el("div", { class: "ex" + (isDone(ex) ? " done" : "") });
+    var meta = ex.cardio ? ex.cardio + " min" : ex.s + " × " + ex.r + " · " + ex.d;
+    card.appendChild(el("div", { class: "ex-top" }, [el("div", { class: "ex-name", text: ex.n }), el("div", { class: "ex-meta", text: meta })]));
+
+    var pips = el("div", { class: "pips", role: "group", "aria-label": "Series de " + ex.n });
+    for (var i = 0; i < n; i++) (function (i) {
+      var btn = el("button", { type: "button", class: "pip" + (ex.cardio ? " wide" : ""), "aria-pressed": String(!!x.sets[i]),
+        "aria-label": ex.cardio ? "Marcar hecha" : "Serie " + (i + 1),
+        text: ex.cardio ? "Hecha" : String(i + 1),
+        onclick: function () {
+          x.sets[i] = !x.sets[i];
+          btn.setAttribute("aria-pressed", String(x.sets[i]));
+          card.className = "ex" + (isDone(ex) ? " done" : "");
+          updateProgress(DAYS.filter(function (d) { return d.k === S.tab; })[0]);
+          touch();
+        } });
+      pips.appendChild(btn);
+    })(i);
+    card.appendChild(pips);
+
+    var id = "c-" + ex.id;
+    var input = el("input", { class: "load", id: id, type: "text", autocomplete: "off", "aria-label": "Carga de " + ex.n, value: x.load || "",
+      placeholder: ex.cardio ? "ej. 12 % · 5,5 km/h" : "ej. 80 kg × 10 / 10 / 9",
+      oninput: function () { x.load = this.value; touch(); } });
+    card.appendChild(el("div", { class: "loadrow" }, [input]));
+
+    var p = prior(ex.id, S.date);
+    if (p) {
+      card.appendChild(el("div", { class: "prior" }, [
+        "Última vez (" + fmtDate(p.date) + "):", el("b", { text: p.load }),
+        el("button", { type: "button", class: "link", onclick: function () { input.value = p.load; x.load = p.load; touch(); } }, ["Usar"])
+      ]));
+    }
+    return card;
+  }
+
+  function renderRun() {
+    var e = entry(S.date); e.run = e.run || { sel: null, km: "", pace: "", hr: "", notes: "" };
+    var r = e.run;
+    var runDates = Object.keys(S.log).filter(function (d) { return d !== S.date && S.log[d].run && (S.log[d].run.km || S.log[d].run.pace || S.log[d].run.hr || S.log[d].run.notes); }).length;
+    if (!r.sel) r.sel = (runDates % 4) + 1;
+
+    viewEl.appendChild(el("div", { class: "head" }, [
+      el("div", null, [el("h2", { text: "Sábado: correr" }), el("p", { text: "Un solo día de running. Cada sábado entrena una cualidad distinta y el ciclo se repite cada 4 semanas." })]),
+      dateField()
+    ]));
+
+    RUNS.forEach(function (s) {
+      var sel = r.sel === s.n;
+      var card = el("div", { class: "runcard" + (sel ? " sel" : "") }, [
+        el("h3", null, [s.t, el("span", { text: s.dur })]),
+        el("p", { text: s.d })
+      ]);
+      if (sel) card.appendChild(el("p", { class: "muted", text: "Sesión elegida para esta fecha." }));
+      else card.appendChild(el("button", { type: "button", class: "pick", onclick: function () { r.sel = s.n; touch(); render(); } }, ["Hacer esta"]));
+      viewEl.appendChild(card);
+    });
+
+    function field(label, key, ph, mode, full) {
+      var inp = el(key === "notes" ? "textarea" : "input", { id: "r-" + key, rows: "2", placeholder: ph, inputmode: mode || "text", autocomplete: "off",
+        oninput: function () { r[key] = this.value; touch(); } });
+      inp.value = r[key] || "";
+      return el("label", { class: "field" + (full ? " full" : ""), for: "r-" + key }, [label, inp]);
+    }
+    viewEl.appendChild(el("div", { class: "head" }, [el("div", null, [el("h2", { text: "Registro" })])]));
+    viewEl.appendChild(el("div", { class: "fields" }, [
+      field("Distancia (km)", "km", "ej. 15,2", "decimal"),
+      field("Ritmo medio", "pace", "ej. 7:48 /km"),
+      field("FC media", "hr", "ej. 158", "numeric"),
+      field("Notas", "notes", "calor, sensaciones, ruta…", "text", true)
+    ]));
+    var rules = el("ul", { class: "rules" }, [
+      el("li", { text: "Regla del 110 %: el fondo no supera el 110 % de tu tirada más larga de los últimos 30 días." }),
+      el("li", { text: "Con más de 28 °C resta 15-20 s/km y guíate por la FC. Sal antes de las 7:00 y bebe 500-700 ml/h con sodio." }),
+      el("li", { text: "El lunes cae 48 h después del sábado: come bien el sábado y el domingo." })
+    ]);
+    viewEl.appendChild(rules);
+  }
+
+  function renderSeries() {
+    viewEl.appendChild(el("div", { class: "head" }, [el("div", null, [
+      el("h2", { text: "Series por semana" }),
+      el("p", { text: "Pecho, espalda, deltoide medio y tríceps quedan en 9-12 series, dentro del rango de 10-20 que respalda la evidencia para hipertrofia." })
+    ])]));
+    var thead = el("thead", null, [el("tr", null, ["Grupo", "Series", "Frec.", "Días"].map(function (h) { return el("th", { text: h }); }))]);
+    var tbody = el("tbody", null, SERIES.map(function (r) { return el("tr", null, r.map(function (c) { return el("td", { text: String(c) }); })); }));
+    viewEl.appendChild(el("div", { class: "tablewrap" }, [el("table", null, [thead, tbody])]));
+    viewEl.appendChild(el("ul", { class: "rules" }, [
+      el("li", { text: "Subir peso: cuando completes el tope de repeticiones en todas las series, sube 2-5 % la siguiente sesión." }),
+      el("li", { text: "Subir volumen: si recuperas bien 3-4 semanas, añade 1 serie a pecho, espalda y deltoide medio hasta llegar a 12." }),
+      el("li", { text: "Tríceps: si notas molestia en los codos, baja a 8 series semanales." }),
+      el("li", { text: "Tiempo: si una sesión pasa de 65 min, quita la serie de tríceps en polea del martes o 1 serie de cruces del viernes." })
+    ]));
+  }
+
+  /* ---------- arranque ---------- */
+  function startTab() {
+    var wd = new Date().getDay(); // 0 dom
+    var map = { 1: "lun", 2: "mar", 3: "jue", 4: "jue", 5: "vie", 6: "sab", 0: "lun" };
+    map[3] = "jue";
+    return map[wd] || "lun";
+  }
+  S.tab = startTab();
+  var local = lsRead();
+  if (local) S.log = local;
+  render();
+  statusIdle();
+
+  function connect() {
+    if (!window.claude || !window.claude.use) { S.ready = true; return; }
+    Promise.all([window.claude.use("db"), window.claude.use("user")]).then(function (r) {
+      var db = r[0], user = r[1];
+      if (!db || !user) { S.ready = true; return null; }
+      return user.id().then(function (uid) {
+        if (!uid) { S.ready = true; return null; }
+        S.db = db; S.uid = uid;
+        return db.doc("data/users/" + uid + "/log").get().then(function (snap) {
+          var remote = snap.exists ? (snap.data().log || {}) : {};
+          S.log = mergeLogs(remote, S.log);
+          S.dbOk = true; S.ready = true;
+          lsWrite();
+          render();
+          if (JSON.stringify(S.log) !== JSON.stringify(remote)) { S.dirty = true; flush(); } else statusIdle();
+        });
+      });
+    }).then(null, function () { S.ready = true; S.dbOk = false; statusIdle(); });
+  }
+  connect();
+})();
+</script>
